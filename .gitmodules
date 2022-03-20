@@ -1,3 +1,0 @@
-[submodule "src/gdb-js"]
-	path = src/gdb-js
-	url = https://github.com/novafacing/gdb-js.git
