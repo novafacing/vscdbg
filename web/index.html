@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+        <!-- script paths are dynamically replaced by the extension with the on-disk path 
+        when the index file is loaded -->
+        <script type="module" src="{toolkitUri}"></script>
+        <script type="module" src="{mainUri}"></script>
+        <link href="{styleUri}" rel="stylesheet" />
+        <link href="{codiconsUri}" rel="stylesheet" />
+        <style>
+            @font-face {
+                font-family: "FiraCode";
+                src: url("{firaCodeRegularWoff2Uri}") format("woff2"),
+                    url("{firaCodeRegularWoffUri}") format("woff");
+                font-weight: 400;
+                font-style: normal;
+            }
+
+            @font-face {
+                font-family: "FiraCode";
+                src: url("{firaCodeBoldWoff2Uri}") format("woff2"),
+                    url("{firaCodeBoldWoffUri}") format("woff");
+                font-weight: 700;
+                font-style: normal;
+            }
+
+            *:not(.codicon) {
+                font-family: FiraCode !important;
+            }
+        </style>
+        <title>VSCDBG</title>
+    </head>
+    <body>
+        <vscode-text-area id="output">output</vscode-text-area>
+        <vscode-text-field id="input" placeholder="..." size="120">
+            gdb
+            <span slot="start" class="codicon codicon-chevron-right"></span>
+        </vscode-text-field>
+    </body>
+</html>

@@ -1,14 +1,19 @@
 import { Uri, WebviewPanel, Disposable, ViewColumn, window, Webview } from "vscode";
 import { getUri } from "../util/VSCUtil";
+import { readFileSync } from "fs";
+import { FormatStr } from "../util/FormatStr";
+import { GdbInterface } from "../gdb/GdbInterface";
 import createWebviewPanel = window.createWebviewPanel;
 import showInformationMessage = window.showInformationMessage;
+import format = FormatStr.format;
 
 export class VSCDBGPanel {
     public static currentPanel: VSCDBGPanel | undefined;
     private readonly _panel: WebviewPanel;
     private _disposables: Disposable[] = [];
+    private gdb: GdbInterface;
 
-    private constructor(panel: WebviewPanel, extensionUri: Uri) {
+    private constructor(panel: WebviewPanel, extensionUri: Uri, gdb: GdbInterface) {
         this._panel = panel;
         this._panel.onDidDispose(this.dispose, null, this._disposables);
         this._panel.webview.html = this._getWebviewContent(
@@ -16,9 +21,10 @@ export class VSCDBGPanel {
             extensionUri,
         );
         this._setWebviewMessageListener(this._panel.webview);
+        this.gdb = gdb;
     }
 
-    public static render(extensionUri: Uri) {
+    public static render(extensionUri: Uri, gdb: GdbInterface) {
         if (VSCDBGPanel.currentPanel) {
             VSCDBGPanel.currentPanel._panel.reveal(ViewColumn.One);
         } else {
@@ -26,21 +32,12 @@ export class VSCDBGPanel {
                 enableScripts: true,
                 retainContextWhenHidden: true,
             });
-            VSCDBGPanel.currentPanel = new VSCDBGPanel(panel, extensionUri);
+            VSCDBGPanel.currentPanel = new VSCDBGPanel(panel, extensionUri, gdb);
         }
     }
 
     public dispose() {
-        VSCDBGPanel.currentPanel = undefined;
-
-        this._panel.dispose();
-
-        while (this._disposables.length) {
-            const disposable = this._disposables.pop();
-            if (disposable) {
-                disposable.dispose();
-            }
-        }
+        /* TODO: why does this error out */
     }
 
     private _getWebviewContent(webview: Webview, extensionUri: Uri) {
@@ -50,28 +47,54 @@ export class VSCDBGPanel {
             "node_modules/@vscode/webview-ui-toolkit/dist/toolkit.js",
         );
         const mainUri = getUri(webview, extensionUri, "web/main.js");
-        return /*html*/ `
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width,initial-scale=1.0">
-                <script type="module" src="${toolkitUri}"></script>
-                <script type="module" src="${mainUri}"></script>
-                <title>Hello World!</title>
-            </head>
-            <body>
-                <h1>Hello World!</h1>
-                <vscode-button id="howdy">Howdy!</vscode-button>
-            </body>
-            </html>
-        `;
+        const styleUri = getUri(webview, extensionUri, "web/style.css");
+        const codiconsUri = getUri(
+            webview,
+            extensionUri,
+            "node_modules/@vscode/codicons/dist/codicon.css",
+        );
+        const firaCodeRegularWoff2Uri = getUri(
+            webview,
+            extensionUri,
+            "web/font/woff2/FiraCode-Regular.woff2",
+        );
+        const firaCodeRegularWoffUri = getUri(
+            webview,
+            extensionUri,
+            "web/font/woff/FiraCode-Regular.woff",
+        );
+        const firaCodeBoldWoff2Uri = getUri(
+            webview,
+            extensionUri,
+            "web/font/woff2/FiraCode-Bold.woff2",
+        );
+        const firaCodeBoldWoffUri = getUri(
+            webview,
+            extensionUri,
+            "web/font/woff/FiraCode-Bold.woff",
+        );
+        const indexContent = readFileSync(
+            getUri(webview, extensionUri, "web/index.html").fsPath,
+            "utf-8",
+        );
+        const indexLoaded = format(indexContent, {
+            toolkitUri: toolkitUri.toString(),
+            mainUri: mainUri.toString(),
+            styleUri: styleUri.toString(),
+            codiconsUri: codiconsUri.toString(),
+            firaCodeRegularWoff2Uri: firaCodeRegularWoff2Uri.toString(),
+            firaCodeRegularWoffUri: firaCodeRegularWoffUri.toString(),
+            firaCodeBoldWoff2Uri: firaCodeBoldWoff2Uri.toString(),
+            firaCodeBoldWoffUri: firaCodeBoldWoffUri.toString(),
+        });
+        return indexLoaded;
     }
 
     private _setWebviewMessageListener(webview: Webview) {
         webview.onDidReceiveMessage(
             (message: any) => {
-                showInformationMessage(message.text);
+                console.log("Received message ", message);
+                showInformationMessage(message);
             },
             undefined,
             this._disposables,
