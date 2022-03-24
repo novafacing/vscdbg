@@ -1,0 +1,23 @@
+line := asyncRecord | streamRecord |  resultRecord | '(gdb)'
+resultRecord := token? '^' resultClass resultList*
+asyncRecord := execAsyncOutput | statusAsyncOutput | notifyAsyncOutput
+execAsyncOutput := token? '*' asyncOutput '\n'
+statusAsyncOutput := token? '+' asyncOutput '\n'
+notifyAsyncOutput := token? '=' asyncOutput '\n'
+asyncOutput := asyncClass resultList*
+resultClass := 'done' | 'running' | 'connected' | 'error' | 'exit'
+asyncClass := 'stopped'
+resultList := ',' result
+valueList := ',' value
+result := variable '=' value
+variable := '.*'
+value := const | tuple | list
+const := '"([^\\"]|\\.)*"'
+tuple := '{} | '{' result resultList* '}'
+list := '[]' | '[' value valueList* ']' | '[' result resultList* ']'
+streamRecord := consoleStreamOutput | targetStreamOutput | logStreamOutput
+consoleStreamOutput := '~' const
+targetStreamOutput := '@' const
+logStreamOutput := '&' const
+token := '\d+'
+

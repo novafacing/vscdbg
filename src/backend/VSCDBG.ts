@@ -1,4 +1,12 @@
-import { Uri, WebviewPanel, Disposable, ViewColumn, window, Webview } from "vscode";
+import {
+    Uri,
+    WebviewPanel,
+    Disposable,
+    ViewColumn,
+    window,
+    Webview,
+    ExtensionContext,
+} from "vscode";
 import { getUri } from "../util/VSCUtil";
 import { readFileSync } from "fs";
 import { FormatStr } from "../util/FormatStr";
@@ -6,33 +14,44 @@ import { GdbInterface } from "../gdb/GdbInterface";
 import createWebviewPanel = window.createWebviewPanel;
 import showInformationMessage = window.showInformationMessage;
 import format = FormatStr.format;
+import { Message } from "../message/Message";
+import { MessageType } from "../message/MessageType";
 
-export class VSCDBGPanel {
-    public static currentPanel: VSCDBGPanel | undefined;
-    private readonly _panel: WebviewPanel;
-    private _disposables: Disposable[] = [];
+export class VSCDBG {
+    private panel: WebviewPanel | undefined = undefined;
+    private disposables: Disposable[] = [];
     private gdb: GdbInterface;
+    context: ExtensionContext;
+    extensionUri: Uri;
 
-    private constructor(panel: WebviewPanel, extensionUri: Uri, gdb: GdbInterface) {
-        this._panel = panel;
-        this._panel.onDidDispose(this.dispose, null, this._disposables);
-        this._panel.webview.html = this._getWebviewContent(
-            this._panel.webview,
-            extensionUri,
+    private initPanel(): void {
+        this.panel = createWebviewPanel("vscdbg", "VSCDBG", ViewColumn.One, {
+            enableScripts: true,
+            retainContextWhenHidden: true,
+        });
+        this.panel.onDidDispose(this.dispose, null, this.disposables);
+        this.panel.webview.html = this._getWebviewContent(
+            this.panel.webview,
+            this.extensionUri,
         );
-        this._setWebviewMessageListener(this._panel.webview);
+        this._setWebviewMessageListener(this.panel.webview);
+    }
+
+    constructor(context: ExtensionContext, gdb: GdbInterface) {
+        this.context = context;
+        this.extensionUri = context.extensionUri;
         this.gdb = gdb;
     }
 
-    public static render(extensionUri: Uri, gdb: GdbInterface) {
-        if (VSCDBGPanel.currentPanel) {
-            VSCDBGPanel.currentPanel._panel.reveal(ViewColumn.One);
+    setGdb(gdb: GdbInterface): void {
+        this.gdb = gdb;
+    }
+
+    public render() {
+        if (this.panel) {
+            this.panel.reveal(ViewColumn.One);
         } else {
-            const panel = createWebviewPanel("vscdbg", "VSCDBG", ViewColumn.One, {
-                enableScripts: true,
-                retainContextWhenHidden: true,
-            });
-            VSCDBGPanel.currentPanel = new VSCDBGPanel(panel, extensionUri, gdb);
+            this.initPanel();
         }
     }
 
@@ -91,13 +110,23 @@ export class VSCDBGPanel {
     }
 
     private _setWebviewMessageListener(webview: Webview) {
-        webview.onDidReceiveMessage(
-            (message: any) => {
-                console.log("Received message ", message);
-                showInformationMessage(message);
-            },
-            undefined,
-            this._disposables,
-        );
+        webview.onDidReceiveMessage(this.receiveMessage, undefined, this.disposables);
+    }
+
+    receiveMessage(message: Message) {
+        switch (message.type) {
+            case MessageType.GDB_COMMAND: {
+                this.gdb.execute(message.data);
+            }
+            default: {
+                showInformationMessage(
+                    `VSCDBG: Received unexpected message type ${message.type}`,
+                );
+            }
+        }
+    }
+
+    sendMessage(message: Message) {
+        this.panel.webview.postMessage(message);
     }
 }

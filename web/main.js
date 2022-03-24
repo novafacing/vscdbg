@@ -18,12 +18,23 @@ class VSCDBGFrontend {
 
     handleVsCodeMessage(message) {
         console.log("Received vscode message ", message);
+        switch (message.type) {
+            case "GDB_OUTPUT": {
+                this.gdbOutput.value += message.data;
+            }
+            case "GDB_INPUT": {
+                /* we don't expect to get this */
+            }
+            case "ERROR": {
+                /* we don't expect to get this */
+            }
+        }
     }
 
     handleGdbInput() {
         console.log("Handling GDB Input...");
         const content = this.gdbInput.value;
-        this.vscode.postMessage(content);
+        this.vscode.postMessage({ type: "GDB_COMMAND", data: content });
     }
 
     setEventListeners() {

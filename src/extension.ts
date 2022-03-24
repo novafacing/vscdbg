@@ -1,6 +1,6 @@
 import { commands, ExtensionContext, workspace, window } from "vscode";
 import { GdbInterface } from "./gdb/GdbInterface";
-import { VSCDBGPanel } from "./panels/VSCDBGPanel";
+import { VSCDBG } from "./backend/VSCDBG";
 import registerCommand = commands.registerCommand;
 import getConfiguration = workspace.getConfiguration;
 import showErrorMessage = window.showErrorMessage;
@@ -19,8 +19,14 @@ export function activate(context: ExtensionContext) {
         return;
     }
 
+    if (!gdb) {
+        throw Error("No gdb!");
+    }
+
+    const backend = new VSCDBG(context, <GdbInterface>gdb);
+
     const vscdbgCommand = registerCommand("vscdbg.vscdbg", () => {
-        VSCDBGPanel.render(context.extensionUri, <GdbInterface>gdb);
+        backend.render();
     });
     context.subscriptions.push(vscdbgCommand);
 }

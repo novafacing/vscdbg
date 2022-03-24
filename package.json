@@ -40,7 +40,9 @@
     "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
+    "@types/debug": "^4.1.7",
     "@types/glob": "^7.2.0",
+    "@types/highland": "^2.12.14",
     "@types/mocha": "^9.1.0",
     "@types/node": "14.x",
     "@types/vscode": "^1.65.0",
@@ -56,6 +58,8 @@
   "dependencies": {
     "@vscode/webview-ui-toolkit": "^0.9.2",
     "child_process": "^1.0.2",
+    "debug": "^4.3.4",
+    "highland": "^2.13.5",
     "vscode-codicons": "^0.0.17"
   }
 }
